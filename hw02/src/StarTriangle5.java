@@ -5,23 +5,8 @@ public class StarTriangle5 {
      */
    public static void starTriangle5() {
       // TODO: Fill in this function
-
-      /* first try
-      for (int i = 0; i < 5; i++) {
-         String s = "";
-         for (int j = 0; j < 4 - i; j++) {
-            s += " ";
-         }
-         for (int j = 0; j <= i; j++) {
-            s += "*";
-         }
-         System.out.println(s);
-      } */
-
-      // final version
-      for (int i = 0; i < 5; i++) {
-         // Concatenates spaces and stars using repeat
-         String line = " ".repeat(4 - i) + "*".repeat(i + 1);
+      for (int i = 1; i <= 5; i++) {
+         String line = " ".repeat(5 - i) + "*".repeat(i);
          System.out.println(line);
       }
    }
