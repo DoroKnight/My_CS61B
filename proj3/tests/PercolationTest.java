@@ -82,7 +82,177 @@ public class PercolationTest {
     //       write some more tests and delete the fail() line
     @Test
     public void yourFirstTestHere() {
-        fail("Did you write your own tests?");
+        return;
+    }
+
+    @Test
+    public void testConstructorIllegalArgumentExceptions() {
+        int[] invalidSizes = {0, -1, -100};
+        for (int n : invalidSizes) {
+            try {
+                new Percolation(n);
+                fail("Expected IllegalArgumentException for N = " + n);
+            } catch (IllegalArgumentException e) {
+                // Expected behavior (符合预期的异常，不做任何处理)
+            }
+        }
+    }
+
+    @Test
+    public void testIndexOutOfBoundsExceptionsOnUpperBounds() {
+        int n = 5;
+        Percolation p = new Percolation(n);
+
+        // Test open()
+        try { p.open(n, 0); fail("Expected IndexOutOfBoundsException"); } catch (IndexOutOfBoundsException e) {}
+        try { p.open(0, n); fail("Expected IndexOutOfBoundsException"); } catch (IndexOutOfBoundsException e) {}
+        try { p.open(n, n); fail("Expected IndexOutOfBoundsException"); } catch (IndexOutOfBoundsException e) {}
+
+        // Test isOpen()
+        try { p.isOpen(n, 0); fail("Expected IndexOutOfBoundsException"); } catch (IndexOutOfBoundsException e) {}
+
+        // Test isFull()
+        try { p.isFull(0, n); fail("Expected IndexOutOfBoundsException"); } catch (IndexOutOfBoundsException e) {}
+    }
+
+    @Test
+    public void testIndexOutOfBoundsExceptionsOnIntegerExtremes() {
+        Percolation p = new Percolation(10);
+
+        try {
+            p.open(Integer.MIN_VALUE, 0);
+            fail("Expected IndexOutOfBoundsException");
+        } catch (IndexOutOfBoundsException e) {}
+
+        try {
+            p.open(0, Integer.MAX_VALUE);
+            fail("Expected IndexOutOfBoundsException");
+        } catch (IndexOutOfBoundsException e) {}
+
+        try {
+            p.isOpen(Integer.MIN_VALUE, Integer.MAX_VALUE);
+            fail("Expected IndexOutOfBoundsException");
+        } catch (IndexOutOfBoundsException e) {}
+    }
+    
+    @Test
+    public void testMinimumValidGridOneByOne() {
+        Percolation p = new Percolation(1);
+
+        assertThat(p.numberOfOpenSites()).isEqualTo(0);
+        assertThat(p.isOpen(0, 0)).isFalse();
+        assertThat(p.isFull(0, 0)).isFalse();
+        assertThat(p.percolates()).isFalse();
+
+        p.open(0, 0);
+
+        assertThat(p.numberOfOpenSites()).isEqualTo(1);
+        assertThat(p.isOpen(0, 0)).isTrue();
+        assertThat(p.isFull(0, 0)).isTrue();
+        assertThat(p.percolates()).isTrue();
+    }
+
+    @Test
+    public void testInitialStateOfGrid() {
+        int n = 4;
+        Percolation p = new Percolation(n);
+
+        assertThat(p.numberOfOpenSites()).isEqualTo(0);
+        assertThat(p.percolates()).isFalse();
+
+        for (int r = 0; r < n; r++) {
+            for (int c = 0; c < n; c++) {
+                assertThat(p.isOpen(r, c)).isFalse();
+                assertThat(p.isFull(r, c)).isFalse();
+            }
+        }
+    }
+
+    @Test
+    public void testIdempotenceOfOpenCall() {
+        Percolation p = new Percolation(3);
+
+        p.open(1, 1);
+        assertThat(p.numberOfOpenSites()).isEqualTo(1);
+
+        p.open(1, 1);
+        p.open(1, 1);
+        assertThat(p.numberOfOpenSites()).isEqualTo(1);
+        assertThat(p.isOpen(1, 1)).isTrue();
+    }
+
+    @Test
+    public void testDiagonalNonConnectivity() {
+        Percolation p = new Percolation(3);
+
+        p.open(0, 0);
+        p.open(1, 1);
+        p.open(2, 2);
+
+        assertThat(p.isFull(0, 0)).isTrue();
+        assertThat(p.isFull(1, 1)).isFalse();
+        assertThat(p.isFull(2, 2)).isFalse();
+        assertThat(p.percolates()).isFalse();
+    }
+
+    @Test
+    public void testUShapedFlowConnectivity() {
+        Percolation p = new Percolation(4);
+
+        p.open(0, 1);
+        p.open(1, 1);
+        p.open(2, 1);
+        p.open(2, 2);
+        p.open(2, 3);
+        p.open(1, 3);
+
+        assertThat(p.isFull(1, 3)).isTrue();
+        assertThat(p.percolates()).isFalse();
+
+        p.open(0, 3);
+        assertThat(p.isFull(0, 3)).isTrue();
+        assertThat(p.percolates()).isFalse();
+    }
+
+    @Test
+    public void testStrictBackwashPrevention() {
+        int n = 5;
+        Percolation p = new Percolation(n);
+
+        for (int r = 0; r < n; r++) {
+            p.open(r, 0);
+        }
+        assertThat(p.percolates()).isTrue();
+
+        p.open(n - 1, n - 1);
+        p.open(n - 2, n - 1);
+
+        assertThat(p.isOpen(n - 1, n - 1)).isTrue();
+        assertThat(p.isOpen(n - 2, n - 1)).isTrue();
+
+        assertThat(p.isFull(n - 1, n - 1)).isFalse();
+        assertThat(p.isFull(n - 2, n - 1)).isFalse();
+    }
+
+    @Test
+    public void testFullGridPercolation() {
+        int n = 3;
+        Percolation p = new Percolation(n);
+
+        for (int r = 0; r < n; r++) {
+            for (int c = 0; c < n; c++) {
+                p.open(r, c);
+            }
+        }
+
+        assertThat(p.numberOfOpenSites()).isEqualTo(n * n);
+        assertThat(p.percolates()).isTrue();
+
+        for (int r = 0; r < n; r++) {
+            for (int c = 0; c < n; c++) {
+                assertThat(p.isFull(r, c)).isTrue();
+            }
+        }
     }
 
 }
