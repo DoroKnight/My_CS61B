@@ -134,7 +134,7 @@ public class PercolationTest {
             fail("Expected IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {}
     }
-    
+
     @Test
     public void testMinimumValidGridOneByOne() {
         Percolation p = new Percolation(1);
