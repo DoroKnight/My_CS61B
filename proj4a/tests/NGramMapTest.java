@@ -98,4 +98,80 @@ public class NGramMapTest {
         assertThat(fishPlusDogWeight.get(1865)).isWithin(1E-10).of(expectedFishPlusDogWeight1865);
     }
 
+    @Test
+    public void testMissingWordsReturnEmptyTimeSeries() {
+        NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE);
+
+        assertThat(ngm.countHistory("thiswordshouldnotexist").years()).isEmpty();
+        assertThat(ngm.countHistory("thiswordshouldnotexist", 2005, 2008).years()).isEmpty();
+        assertThat(ngm.weightHistory("thiswordshouldnotexist").years()).isEmpty();
+        assertThat(ngm.weightHistory("thiswordshouldnotexist", 2005, 2008).years()).isEmpty();
+    }
+
+    @Test
+    public void testOutOfRangeHistoriesAreEmpty() {
+        NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE);
+
+        assertThat(ngm.countHistory("request", 1990, 1999).years()).isEmpty();
+        assertThat(ngm.weightHistory("airport", 2005, 2006).years()).isEmpty();
+    }
+
+    @Test
+    public void testCountHistoryReturnsDefensiveCopy() {
+        NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE);
+
+        TimeSeries requestHistory = ngm.countHistory("request");
+        requestHistory.put(2005, -1.0);
+        requestHistory.put(2009, 9000.0);
+
+        TimeSeries requestHistoryAgain = ngm.countHistory("request");
+        assertThat(requestHistoryAgain.get(2005)).isWithin(1E-10).of(646179.0);
+        assertThat(requestHistoryAgain.containsKey(2009)).isFalse();
+    }
+
+    @Test
+    public void testTotalCountHistoryReturnsDefensiveCopy() {
+        NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE);
+
+        TimeSeries totalCounts = ngm.totalCountHistory();
+        totalCounts.put(2007, -1.0);
+
+        TimeSeries totalCountsAgain = ngm.totalCountHistory();
+        assertThat(totalCountsAgain.get(2007)).isWithin(1E-10).of(28307904288.0);
+    }
+
+    @Test
+    public void testSummedWeightHistoryIgnoresMissingWords() {
+        NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE);
+
+        List<String> words = new ArrayList<>();
+        words.add("request");
+        words.add("thiswordshouldnotexist");
+        words.add("airport");
+
+        TimeSeries summedWeight = ngm.summedWeightHistory(words, 2006, 2008);
+
+        double expected2006 = 677820.0 / 27695491774.0;
+        double expected2007 = (697645.0 + 175702.0) / 28307904288.0;
+        double expected2008 = (795265.0 + 173294.0) / 28752030034.0;
+
+        assertThat(summedWeight.get(2006)).isWithin(1E-10).of(expected2006);
+        assertThat(summedWeight.get(2007)).isWithin(1E-10).of(expected2007);
+        assertThat(summedWeight.get(2008)).isWithin(1E-10).of(expected2008);
+    }
+
+    @Test
+    public void testSummedWeightHistoryWithOnlyMissingWordsIsEmpty() {
+        NGramMap ngm = new NGramMap(WORD_HISTORY_SIZE3_FILE, YEAR_HISTORY_FILE);
+
+        List<String> words = new ArrayList<>();
+        words.add("thiswordshouldnotexist");
+        words.add("thiswordalsoshouldnotexist");
+
+        TimeSeries summedWeight = ngm.summedWeightHistory(words, 2006, 2008);
+
+        assertThat(summedWeight.years()).isEmpty();
+        assertThat(summedWeight.data()).isEmpty();
+    }
+
 }
