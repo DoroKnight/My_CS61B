@@ -1,5 +1,8 @@
 import org.junit.jupiter.api.Test;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -438,6 +441,124 @@ public class TestRedBlackTree {
         assertWithMessage("Number of Calls to Rotate Right after inserting (9, 8, 7, 6, 5, 4, 3, 2, 1) in order").that(callsToRotateRight).isEqualTo(5);
     }
 
+    @Test
+    public void testFlipColorsActuallyFlipsAllThreeNodes() {
+        RedBlackTree<Integer> rbtree = new TestableRedBlackTree();
+        RedBlackTree.RBTreeNode<Integer> left = new RedBlackTree.RBTreeNode<>(false, 5);
+        RedBlackTree.RBTreeNode<Integer> right = new RedBlackTree.RBTreeNode<>(false, 15);
+        RedBlackTree.RBTreeNode<Integer> root = new RedBlackTree.RBTreeNode<>(true, 10, left, right);
+
+        rbtree.flipColors(root);
+
+        assertThat(root.isBlack).isFalse();
+        assertThat(left.isBlack).isTrue();
+        assertThat(right.isBlack).isTrue();
+        assertThat(root.left).isSameInstanceAs(left);
+        assertThat(root.right).isSameInstanceAs(right);
+
+        rbtree.flipColors(root);
+
+        assertThat(root.isBlack).isTrue();
+        assertThat(left.isBlack).isFalse();
+        assertThat(right.isBlack).isFalse();
+    }
+
+    @Test
+    public void testRotateLeftPreservesSubtreesReferencesAndSwapsColors() {
+        RedBlackTree<Integer> rbtree = new TestableRedBlackTree();
+        RedBlackTree.RBTreeNode<Integer> node5 = new RedBlackTree.RBTreeNode<>(true, 5);
+        RedBlackTree.RBTreeNode<Integer> node12 = new RedBlackTree.RBTreeNode<>(true, 12);
+        RedBlackTree.RBTreeNode<Integer> node20 = new RedBlackTree.RBTreeNode<>(true, 20);
+        RedBlackTree.RBTreeNode<Integer> node15 =
+                new RedBlackTree.RBTreeNode<>(false, 15, node12, node20);
+        RedBlackTree.RBTreeNode<Integer> node10 =
+                new RedBlackTree.RBTreeNode<>(true, 10, node5, node15);
+
+        RedBlackTree.RBTreeNode<Integer> newRoot = rbtree.rotateLeft(node10);
+
+        assertThat(newRoot).isSameInstanceAs(node15);
+        assertThat(newRoot.left).isSameInstanceAs(node10);
+        assertThat(newRoot.right).isSameInstanceAs(node20);
+        assertThat(node10.left).isSameInstanceAs(node5);
+        assertThat(node10.right).isSameInstanceAs(node12);
+        assertThat(newRoot.isBlack).isTrue();
+        assertThat(node10.isBlack).isFalse();
+        assertBSTOrder(newRoot);
+    }
+
+    @Test
+    public void testRotateRightPreservesSubtreesReferencesAndSwapsColors() {
+        RedBlackTree<Integer> rbtree = new TestableRedBlackTree();
+        RedBlackTree.RBTreeNode<Integer> node5 = new RedBlackTree.RBTreeNode<>(true, 5);
+        RedBlackTree.RBTreeNode<Integer> node12 = new RedBlackTree.RBTreeNode<>(true, 12);
+        RedBlackTree.RBTreeNode<Integer> node20 = new RedBlackTree.RBTreeNode<>(true, 20);
+        RedBlackTree.RBTreeNode<Integer> node10 =
+                new RedBlackTree.RBTreeNode<>(false, 10, node5, node12);
+        RedBlackTree.RBTreeNode<Integer> node15 =
+                new RedBlackTree.RBTreeNode<>(true, 15, node10, node20);
+
+        RedBlackTree.RBTreeNode<Integer> newRoot = rbtree.rotateRight(node15);
+
+        assertThat(newRoot).isSameInstanceAs(node10);
+        assertThat(newRoot.left).isSameInstanceAs(node5);
+        assertThat(newRoot.right).isSameInstanceAs(node15);
+        assertThat(node15.left).isSameInstanceAs(node12);
+        assertThat(node15.right).isSameInstanceAs(node20);
+        assertThat(newRoot.isBlack).isTrue();
+        assertThat(node15.isBlack).isFalse();
+        assertBSTOrder(newRoot);
+    }
+
+    @Test
+    public void testDuplicateInsertDoesNotChangeTreeOrCallFixes() {
+        RedBlackTree<Integer> rbtree = new TestableRedBlackTree();
+
+        rbtree.insert(10);
+        RedBlackTree.RBTreeNode<Integer> originalRoot = rbtree.root;
+        callsToFlipColors = 0;
+        callsToRotateLeft = 0;
+        callsToRotateRight = 0;
+
+        rbtree.insert(10);
+
+        assertThat(rbtree.root).isSameInstanceAs(originalRoot);
+        assertThat(rbtree.root.item).isEqualTo(10);
+        assertThat(rbtree.root.isBlack).isTrue();
+        assertThat(rbtree.root.left).isNull();
+        assertThat(rbtree.root.right).isNull();
+        assertThat(countNodes(rbtree.root)).isEqualTo(1);
+        assertThat(callsToFlipColors).isEqualTo(0);
+        assertThat(callsToRotateLeft).isEqualTo(0);
+        assertThat(callsToRotateRight).isEqualTo(0);
+    }
+
+    @Test
+    public void testMixedInsertionsMaintainAllLLRBInvariants() {
+        RedBlackTree<Integer> rbtree = new TestableRedBlackTree();
+        int[] values = {30, 10, 50, 5, 20, 40, 60, 1, 7, 15, 25, 35, 45, 55, 70};
+
+        for (int value : values) {
+            rbtree.insert(value);
+            assertValidLLRB(rbtree);
+        }
+
+        assertThat(countNodes(rbtree.root)).isEqualTo(values.length);
+        assertContainsExactly(rbtree.root, values);
+    }
+
+    @Test
+    public void testZigZagInsertionsMaintainAllLLRBInvariants() {
+        RedBlackTree<Integer> rbtree = new TestableRedBlackTree();
+        int[] values = {8, 16, 12, 14, 10, 4, 6, 2, 1, 3, 5, 7, 9, 11, 13, 15};
+
+        for (int value : values) {
+            rbtree.insert(value);
+            assertValidLLRB(rbtree);
+        }
+
+        assertThat(countNodes(rbtree.root)).isEqualTo(values.length);
+        assertContainsExactly(rbtree.root, values);
+    }
 
     /*
      * Just super neat class to test the number of times your LLRB Tree implementation makes calls to it's
@@ -468,4 +589,114 @@ public class TestRedBlackTree {
     private int callsToFlipColors = 0;
     private int callsToRotateRight = 0;
     private int callsToRotateLeft = 0;
+
+    private void assertValidLLRB(RedBlackTree<Integer> tree) {
+        assertThat(tree.root).isNotNull();
+        assertWithMessage("The root of an LLRB tree must always be black.")
+                .that(tree.root.isBlack).isTrue();
+        assertBSTOrder(tree.root);
+        assertNoRightLeaningRedLinks(tree.root);
+        assertNoNodeHasTwoRedChildren(tree.root);
+        assertNoConsecutiveRedNodes(tree.root);
+        blackHeight(tree.root);
+    }
+
+    private void assertBSTOrder(RedBlackTree.RBTreeNode<Integer> node) {
+        assertBSTOrder(node, null, null);
+    }
+
+    private void assertBSTOrder(RedBlackTree.RBTreeNode<Integer> node,
+                                Integer lowerBound, Integer upperBound) {
+        if (node == null) {
+            return;
+        }
+        if (lowerBound != null) {
+            assertWithMessage("BST order violation: node must be greater than its lower bound.")
+                    .that(node.item).isGreaterThan(lowerBound);
+        }
+        if (upperBound != null) {
+            assertWithMessage("BST order violation: node must be less than its upper bound.")
+                    .that(node.item).isLessThan(upperBound);
+        }
+        assertBSTOrder(node.left, lowerBound, node.item);
+        assertBSTOrder(node.right, node.item, upperBound);
+    }
+
+    private void assertNoRightLeaningRedLinks(RedBlackTree.RBTreeNode<Integer> node) {
+        if (node == null) {
+            return;
+        }
+        assertWithMessage("LLRB violation: red links must lean left, not right.")
+                .that(isRed(node.right)).isFalse();
+        assertNoRightLeaningRedLinks(node.left);
+        assertNoRightLeaningRedLinks(node.right);
+    }
+
+    private void assertNoNodeHasTwoRedChildren(RedBlackTree.RBTreeNode<Integer> node) {
+        if (node == null) {
+            return;
+        }
+        assertWithMessage("LLRB violation: no node may have two red children.")
+                .that(isRed(node.left) && isRed(node.right)).isFalse();
+        assertNoNodeHasTwoRedChildren(node.left);
+        assertNoNodeHasTwoRedChildren(node.right);
+    }
+
+    private void assertNoConsecutiveRedNodes(RedBlackTree.RBTreeNode<Integer> node) {
+        if (node == null) {
+            return;
+        }
+        if (isRed(node)) {
+            assertWithMessage("LLRB violation: a red node may not have a red left child.")
+                    .that(isRed(node.left)).isFalse();
+            assertWithMessage("LLRB violation: a red node may not have a red right child.")
+                    .that(isRed(node.right)).isFalse();
+        }
+        assertNoConsecutiveRedNodes(node.left);
+        assertNoConsecutiveRedNodes(node.right);
+    }
+
+    private int blackHeight(RedBlackTree.RBTreeNode<Integer> node) {
+        if (node == null) {
+            return 1;
+        }
+        int leftBlackHeight = blackHeight(node.left);
+        int rightBlackHeight = blackHeight(node.right);
+        assertWithMessage("LLRB violation: every root-to-null path must have the same black height.")
+                .that(leftBlackHeight).isEqualTo(rightBlackHeight);
+        if (node.isBlack) {
+            return leftBlackHeight + 1;
+        }
+        return leftBlackHeight;
+    }
+
+    private boolean isRed(RedBlackTree.RBTreeNode<Integer> node) {
+        return node != null && !node.isBlack;
+    }
+
+    private int countNodes(RedBlackTree.RBTreeNode<Integer> node) {
+        if (node == null) {
+            return 0;
+        }
+        return 1 + countNodes(node.left) + countNodes(node.right);
+    }
+
+    private void assertContainsExactly(RedBlackTree.RBTreeNode<Integer> node, int[] expectedValues) {
+        Set<Integer> actual = new HashSet<>();
+        addItems(node, actual);
+        Set<Integer> expected = new HashSet<>();
+        for (int value : expectedValues) {
+            expected.add(value);
+        }
+        assertThat(actual).containsExactlyElementsIn(expected);
+    }
+
+    private void addItems(RedBlackTree.RBTreeNode<Integer> node, Set<Integer> items) {
+        if (node == null) {
+            return;
+        }
+        items.add(node.item);
+        addItems(node.left, items);
+        addItems(node.right, items);
+    }
 }
